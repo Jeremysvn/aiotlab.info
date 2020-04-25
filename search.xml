@@ -20,9 +20,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> CPU </tag>
             
@@ -80,9 +80,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> Windows Server </tag>
             
@@ -204,11 +204,11 @@
             
             <tag> Windows </tag>
             
-            <tag> Ubuntu </tag>
-            
             <tag> OS </tag>
             
             <tag> RHEL </tag>
+            
+            <tag> Ubuntu </tag>
             
             <tag> Kali </tag>
             

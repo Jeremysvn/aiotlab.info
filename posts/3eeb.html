@@ -213,7 +213,7 @@ INFO  Hexo is running at http://localhost:4000/. Press Ctrl+C to stop.</code></p
             const strs = href.split('/');
             if (strs.length >= 3) {
                 const host = strs[2];
-                if (host !== 'aiotlab.info,config.url' || window.location.host) {
+                if (host !== 'aiotlab.info config.url' || window.location.host) {
                     $this.attr('href', '/go.html?u='+Base64.encode(href)+'').attr('rel', 'external nofollow noopener noreferrer');
                     if (true) {
                         $this.attr('target', '_blank');
