@@ -1,0 +1,11 @@
+# global
+User-agent: *
+Disallow: /about/
+Disallow: /friends/
+Disallow: /tags/
+Disallow: /categories/
+Disallow: /contact/
+Disallow: /libs/
+Disallow: /js/
+Disallow: /medias/
+Disallow: /css/
