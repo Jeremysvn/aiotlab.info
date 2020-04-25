@@ -104,7 +104,7 @@ UUID<span class="token operator">=</span>0b238fbf-ea33-49dd-bb5c-adf7b763d9c6 /d
             const strs = href.split('/');
             if (strs.length >= 3) {
                 const host = strs[2];
-                if (host !== 'aiotlab.info' || window.location.host) {
+                if (host !== 'aiotlab.info,config.url' || window.location.host) {
                     $this.attr('href', '/go.html?u='+Base64.encode(href)+'').attr('rel', 'external nofollow noopener noreferrer');
                     if (true) {
                         $this.attr('target', '_blank');
