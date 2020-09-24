@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>安装配置Docker环境</title>
+      <link href="/posts/5d00.html"/>
+      <url>/posts/5d00.html</url>
+      
+        <content type="html"><![CDATA[<h2 id="0x01-Docker-简介"><a href="#0x01-Docker-简介" class="headerlink" title="0x01 Docker 简介"></a>0x01 Docker 简介</h2><p>Docker是一个软件集装箱化平台，这意味着您可以构建应用程序，将它与其依赖关系一起打包到一个容器中，然后这些容器可以很容易地运送到其他机器上运行。<br>但什么是集装箱？集装化（也称为基于容器的虚拟化和应用程序集装箱化）是用于部署和运行分布式应用程序的OS级虚拟化方法，无需为每个应用程序启动整个VM。 相反，多个独立的系统（称为容器）在单个控制主机上运行并访问单个内核。<br>容器映像是一个轻量级的、独立的、可执行的软件包，它包括运行它所需的一切：代码、运行时、系统工具、系统库设置。<br>所以主要目标是将软件打包成标准化的单元进行开发，发货和部署。</p><h2 id="0x02-安装前配置"><a href="#0x02-安装前配置" class="headerlink" title="0x02 安装前配置"></a>0x02 安装前配置</h2><h3 id="Docker版本检查"><a href="#Docker版本检查" class="headerlink" title="Docker版本检查"></a>Docker版本检查</h3><p>docker要求CentOS 系统的内核版本高于 3.10 ，内存须 4G 以上，安装之前首先要验证你的CentOS 版本是否支持 Docker 。</p><p>通过uname -r 命令查看你当前的内核版本（建议使用xshell连接虚拟机进行命令操作）：</p><pre class=" language-bash"><code class="language-bash">$ <span class="token function">uname</span> -r</code></pre><h3 id="更新系统"><a href="#更新系统" class="headerlink" title="更新系统"></a>更新系统</h3><p>使用root 权限登录 CentOS。确保 yum 包更新到最新。</p><pre class=" language-bash"><code class="language-bash">$ yum -y update</code></pre><h3 id="卸载旧版本（如果安装过就版本的话）"><a href="#卸载旧版本（如果安装过就版本的话）" class="headerlink" title="卸载旧版本（如果安装过就版本的话）"></a>卸载旧版本（如果安装过就版本的话）</h3><pre class=" language-bash"><code class="language-bash">$ yum remove docker \             docker-common \             docker-selinux \             docker-engine \             docker-client \             docker-client-latest \             docker-latest \             docker-latest-logrotate \             docker-logrotate</code></pre><p>如果安装过旧版本docker，有就会卸载当前版本；如果没安装过，运行上面的命令也没关系，只是提示未安装</p><h3 id="安装需要的软件包"><a href="#安装需要的软件包" class="headerlink" title="安装需要的软件包"></a>安装需要的软件包</h3><p>yum-util 提供yum-config-manager功能，另外两个是devicemapper驱动依赖的</p><pre class=" language-bash"><code class="language-bash">yum <span class="token function">install</span> -y yum-utils device-mapper-persistent-data lvm2</code></pre><h3 id="设置yum源"><a href="#设置yum源" class="headerlink" title="设置yum源"></a>设置yum源</h3><p>设置国内常用源，如清华镜像仓库，速度很快<br>如果没有安装wget则安装，如已安装则会跳过</p><pre class=" language-bash"><code class="language-bash">yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repoyum-config-manager --enable docker-ce-nightlyyum-config-manager --enable docker-ce-test<span class="token comment" spellcheck="true">#清缓存</span>yum makecache fast</code></pre><h2 id="0x03-安装-docker-ce"><a href="#0x03-安装-docker-ce" class="headerlink" title="0x03 安装 docker-ce"></a>0x03 安装 docker-ce</h2><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#安装 docker-ce</span>yum -y <span class="token function">install</span> docker-ce docker-ce-cli containerd.iosystemctl start docker <span class="token operator">&amp;&amp;</span> systemctl <span class="token function">enable</span> docker</code></pre><h3 id="搜索安装指定版本"><a href="#搜索安装指定版本" class="headerlink" title="搜索安装指定版本"></a>搜索安装指定版本</h3><p>查看源中所有版本 docker-ce</p><pre class=" language-bash"><code class="language-bash">yum list docker-ce --showduplicates <span class="token operator">|</span> <span class="token function">sort</span> -r<span class="token comment" spellcheck="true"># 安装指定版本 docker</span>yum <span class="token function">install</span> docker-ce-<span class="token operator">&lt;</span>VERSION_STRING<span class="token operator">></span> docker-ce-cli-<span class="token operator">&lt;</span>VERSION_STRING<span class="token operator">></span> containerd.io</code></pre><h3 id="搜索映像"><a href="#搜索映像" class="headerlink" title="搜索映像"></a>搜索映像</h3><pre class=" language-bash"><code class="language-bash">docker search mysql</code></pre><h3 id="运行hello-world-映像来验证是否正确安装了Docker-Engine"><a href="#运行hello-world-映像来验证是否正确安装了Docker-Engine" class="headerlink" title="运行hello-world 映像来验证是否正确安装了Docker Engine"></a>运行hello-world 映像来验证是否正确安装了Docker Engine</h3><pre class=" language-bash"><code class="language-bash">docker run hello-world</code></pre><h4 id="下载映像后面可加版本号"><a href="#下载映像后面可加版本号" class="headerlink" title="下载映像后面可加版本号"></a>下载映像后面可加版本号</h4><pre class=" language-bash"><code class="language-bash">docker pull mysql:5.7</code></pre><h3 id="查看运行中的映像"><a href="#查看运行中的映像" class="headerlink" title="查看运行中的映像"></a>查看运行中的映像</h3><pre class=" language-bash"><code class="language-bash">docker <span class="token function">ps</span></code></pre><h3 id="查看本地所有映像"><a href="#查看本地所有映像" class="headerlink" title="查看本地所有映像"></a>查看本地所有映像</h3><pre class=" language-bash"><code class="language-bash">docker <span class="token function">ps</span> -a</code></pre><h3 id="查看本地映像"><a href="#查看本地映像" class="headerlink" title="查看本地映像"></a>查看本地映像</h3><pre class=" language-bash"><code class="language-bash">docker images</code></pre><h3 id="停止运行的映像"><a href="#停止运行的映像" class="headerlink" title="停止运行的映像"></a>停止运行的映像</h3><pre class=" language-bash"><code class="language-bash">docker stop name/id</code></pre><h3 id="启动映像"><a href="#启动映像" class="headerlink" title="启动映像"></a>启动映像</h3><pre class=" language-bash"><code class="language-bash">docker start name/id</code></pre><h3 id="登录docker映像"><a href="#登录docker映像" class="headerlink" title="登录docker映像"></a>登录docker映像</h3><pre class=" language-bash"><code class="language-bash">docker <span class="token function">exec</span> -it name/id  /bin/sh</code></pre><h3 id="卸载Docker"><a href="#卸载Docker" class="headerlink" title="卸载Docker"></a>卸载Docker</h3><pre class=" language-bash"><code class="language-bash">yum remove docker-ce docker-ce-cli containerd.io</code></pre><h3 id="删除所有图像，容器和卷"><a href="#删除所有图像，容器和卷" class="headerlink" title="删除所有图像，容器和卷"></a>删除所有图像，容器和卷</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">rm</span> -rf /var/lib/docker</code></pre>]]></content>
+      
+      
+      <categories>
+          
+          <category> 环境部署 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Linux </tag>
+            
+            <tag> Docker </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>CentOS8编译安装配置MySQL8数据库</title>
       <link href="/posts/a7ac.html"/>
       <url>/posts/a7ac.html</url>
@@ -33,11 +60,11 @@
     
     
     <entry>
-      <title>修改MySQL数据库字符编码为UTF-8解决中文乱码</title>
-      <link href="/posts/7b2a.html"/>
-      <url>/posts/7b2a.html</url>
+      <title>修改MySQL数据库字符编码为utf8mb4解决中文乱码</title>
+      <link href="/posts/688b.html"/>
+      <url>/posts/688b.html</url>
       
-        <content type="html"><![CDATA[<h3 id="故障情况"><a href="#故障情况" class="headerlink" title="故障情况"></a>故障情况</h3><p>由于MySQL编码原因会导致数据库出现乱码。</p><h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>修改MySQL数据库字符编码为UTF-8，UTF-8包含全世界所有国家需要用到的字符,是国际编码。</p><h3 id="具体操作"><a href="#具体操作" class="headerlink" title="具体操作"></a>具体操作</h3><h4 id="1、进入MySQL控制台"><a href="#1、进入MySQL控制台" class="headerlink" title="1、进入MySQL控制台"></a>1、进入MySQL控制台</h4><pre class=" language-bash"><code class="language-bash">mysql -uroot -p<span class="token comment" spellcheck="true">#输入密码进入</span>status<span class="token punctuation">;</span><span class="token comment" spellcheck="true">#查看当前MySQL运行状态，</span>Server characterset: latin1Db characterset: latin1Client characterset: utf8Conn. characterset: utf8</code></pre><p>默认客户端和服务器端都用了latin1编码，所以会出现乱码。</p><h4 id="2、修改mysql配置文件"><a href="#2、修改mysql配置文件" class="headerlink" title="2、修改mysql配置文件"></a>2、修改mysql配置文件</h4><pre class=" language-bash"><code class="language-bash"><span class="token function">vi</span> /etc/my.cnf<span class="token comment" spellcheck="true">#在[client]段增加下面代码</span>default-character-set<span class="token operator">=</span>utf8<span class="token comment" spellcheck="true">#在[mysqld]段增加下面的代码</span>default-storage-engine<span class="token operator">=</span>INNODBcharacter-set-server<span class="token operator">=</span>utf8collation-server<span class="token operator">=</span>utf8_general_ci:wq<span class="token operator">!</span> <span class="token comment" spellcheck="true">#保存退出</span></code></pre><h4 id="3、service-mysqld-restart-重启MySQL"><a href="#3、service-mysqld-restart-重启MySQL" class="headerlink" title="3、service mysqld restart #重启MySQL"></a>3、service mysqld restart #重启MySQL</h4><p>再次进入MySQL控制台查看字符编码</p><pre class=" language-bash"><code class="language-bash">status<span class="token punctuation">;</span>Server characterset: utf8Db characterset: utf8Client characterset: utf8Conn. characterset: utf8<span class="token comment" spellcheck="true">#查看MySQL字符集</span>show variables like <span class="token string">'character_set_%'</span><span class="token punctuation">;</span></code></pre><p>MySQL数据库字符集编码修改完成！</p><p><code>参数说明</code></p><ul><li>character_set_client：客户端请求数据的字符集。</li><li>character_set_connection：从客户端接收到数据，然后传输的字符集。</li><li>character_set_database：默认数据库的字符集，无论默认数据库如何改变，都是这个字符集；如果没有默认数据库，使character_set_server指定的字符集，此参数无需设置。</li><li>character_set_filesystem：把操作系统上文件名转化成此字符集，即把character_set_client转换character_set_filesystem，默认binary即可。</li><li>character_set_results：结果集的字符集。</li><li>character_set_server：数据库服务器的默认字符集。</li><li>character_set_system：这个值总是utf8，不需要设置，存储系统元数据的字符集。</li></ul><p><code>备注：</code><br>MySQL 5.5之前的版本设置办法：<br>在[client]段下添加</p><pre class=" language-bash"><code class="language-bash">default-character-set<span class="token operator">=</span>utf8</code></pre><p>在[mysqld]段下添加</p><pre class=" language-bash"><code class="language-bash">default-character-set<span class="token operator">=</span>utf8</code></pre><p>注意，如果修改后不能启动报错，把<code>[mysqld]</code>段下<code>default-character-set=utf8</code>改为<code>character_set_server=utf8</code>，取消<code>[client]</code>段的设置。</p><p>创建数据库的命令：</p><pre class=" language-bash"><code class="language-bash">Create DATABASE IF NOT EXISTS mydata default charset utf8 COLLATE utf8_general_ci<span class="token punctuation">;</span></code></pre><p>至此，修改MySQL数据库字符编码为UTF-8解决中文乱码问题。</p>]]></content>
+        <content type="html"><![CDATA[<h3 id="故障情况"><a href="#故障情况" class="headerlink" title="故障情况"></a>故障情况</h3><p>由于MySQL编码原因会导致数据库出现乱码。修改为UTF-8后发现将emoji 文字直接写入 SQL 中，执行 insert 语句报错。</p><h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><p>修改MySQL数据库字符编码为utf8mb4，utf8mb4包含全世界所有国家需要用到的字符,是国际编码。</p><h3 id="具体操作"><a href="#具体操作" class="headerlink" title="具体操作"></a>具体操作</h3><h4 id="1、进入MySQL控制台"><a href="#1、进入MySQL控制台" class="headerlink" title="1、进入MySQL控制台"></a>1、进入MySQL控制台</h4><pre class=" language-bash"><code class="language-bash">mysql -uroot -p<span class="token comment" spellcheck="true">#输入密码进入</span>status<span class="token punctuation">;</span><span class="token comment" spellcheck="true">#查看当前MySQL运行状态，</span>Server characterset: latin1Db characterset: latin1Client characterset: utf8mb4Conn. characterset: utf8mb4</code></pre><p>默认客户端和服务器端都用了latin1编码，所以会出现乱码。</p><h4 id="2、修改mysql配置文件"><a href="#2、修改mysql配置文件" class="headerlink" title="2、修改mysql配置文件"></a>2、修改mysql配置文件</h4><pre class=" language-bash"><code class="language-bash"><span class="token function">vi</span> /etc/my.cnf<span class="token comment" spellcheck="true">#在[client]段增加下面代码</span>default-character-set<span class="token operator">=</span>utf8mb4<span class="token comment" spellcheck="true">#在[mysqld]段增加下面的代码</span>default-storage-engine<span class="token operator">=</span>INNODBcharacter-set-server<span class="token operator">=</span>utf8mb4collation-server<span class="token operator">=</span>utf8mb4_general_ci:wq<span class="token operator">!</span> <span class="token comment" spellcheck="true">#保存退出</span></code></pre><h4 id="3、service-mysqld-restart-重启MySQL"><a href="#3、service-mysqld-restart-重启MySQL" class="headerlink" title="3、service mysqld restart #重启MySQL"></a>3、service mysqld restart #重启MySQL</h4><p>再次进入MySQL控制台查看字符编码</p><pre class=" language-bash"><code class="language-bash">status<span class="token punctuation">;</span>Server characterset: utf8mb4Db characterset: utf8mb4Client characterset: utf8mb4Conn. characterset: utf8mb4<span class="token comment" spellcheck="true">#查看MySQL字符集</span>show variables like <span class="token string">'character_set_%'</span><span class="token punctuation">;</span></code></pre><p>MySQL数据库字符集编码修改完成！</p><p><code>参数说明</code></p><ul><li>character_set_client：客户端请求数据的字符集。</li><li>character_set_connection：从客户端接收到数据，然后传输的字符集。</li><li>character_set_database：默认数据库的字符集，无论默认数据库如何改变，都是这个字符集；如果没有默认数据库，使character_set_server指定的字符集，此参数无需设置。</li><li>character_set_filesystem：把操作系统上文件名转化成此字符集，即把character_set_client转换character_set_filesystem，默认binary即可。</li><li>character_set_results：结果集的字符集。</li><li>character_set_server：数据库服务器的默认字符集。</li><li>character_set_system：这个值总是utf8mb4，不需要设置，存储系统元数据的字符集。</li></ul><p><code>备注：</code><br>MySQL 5.5之前的版本设置办法：<br>在[client]段下添加</p><pre class=" language-bash"><code class="language-bash">default-character-set<span class="token operator">=</span>utf8mb4</code></pre><p>在[mysqld]段下添加</p><pre class=" language-bash"><code class="language-bash">default-character-set<span class="token operator">=</span>utf8mb4</code></pre><p>注意，如果修改后不能启动报错，把<code>[mysqld]</code>段下<code>default-character-set=utf8</code>改为<code>character_set_server=utf8mb4</code>，取消<code>[client]</code>段的设置。</p><p>创建数据库的命令：</p><pre class=" language-bash"><code class="language-bash">Create DATABASE IF NOT EXISTS mydata default charset utf8mb4 COLLATE utf8mb4_general_ci<span class="token punctuation">;</span></code></pre><p>至此，修改MySQL数据库字符编码为utf8mb4解决中文乱码问题。</p>]]></content>
       
       
       <categories>
@@ -115,9 +142,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> Ubuntu </tag>
             
@@ -144,9 +171,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> NextCloud </tag>
             
@@ -173,9 +200,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> Ubuntu </tag>
             
@@ -202,9 +229,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> Ubuntu </tag>
             
@@ -231,9 +258,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
         </tags>
       
@@ -318,9 +345,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> CPU </tag>
             
@@ -378,9 +405,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> Linux </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> Windows Server </tag>
             
