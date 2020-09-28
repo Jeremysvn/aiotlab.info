@@ -4,6 +4,120 @@
   
     
     <entry>
+      <title>linux主机加固</title>
+      <link href="/posts/ebe6.html"/>
+      <url>/posts/ebe6.html</url>
+      
+        <content type="html"><![CDATA[<h2 id="0x01-前-言"><a href="#0x01-前-言" class="headerlink" title="0x01 前 言"></a>0x01 前 言</h2><p>Linux系统被应用于大部分企业的服务器上，因此在等保测评中主机加固也是必须要完成的一项环节。<br>由于在之后项目开始要进行主机加固，因此对linux的加固流程进行总结学习。<br>Linux的主机加固主要分为：账号安全、认证授权、协议安全、审计安全。简而言之，就是4A（统一安全管理平台解决方案）。</p><p>这边就使用我自己kali的虚拟机进行试验学习。</p><h2 id="0x02-基础加固"><a href="#0x02-基础加固" class="headerlink" title="0x02 基础加固"></a>0x02 基础加固</h2><h3 id="口令生存期"><a href="#口令生存期" class="headerlink" title="口令生存期"></a>口令生存期</h3><pre class=" language-bash"><code class="language-bash">gedit /etc/login.defs<span class="token comment" spellcheck="true">#在此处对密码的长度、时间、过期警告进行修改</span>PASS_MAX_DAYS   90  <span class="token comment" spellcheck="true">#密码最长过期天数</span>PASS_MIN_DAYS   10   <span class="token comment" spellcheck="true">#密码最小过期天数</span>PASS_WARN_AGE   7   <span class="token comment" spellcheck="true">#密码过期警告天数</span>如果修改设置有最小长度也需要修改PASS_MIN_LEN    8   <span class="token comment" spellcheck="true">#密码最小长度</span></code></pre><h3 id="口令复杂度（很重要）"><a href="#口令复杂度（很重要）" class="headerlink" title="口令复杂度（很重要）"></a>口令复杂度（很重要）</h3><pre class=" language-bash"><code class="language-bash">vim /etc/pam.d/system-auth<span class="token comment" spellcheck="true">#在文件中找到 password requisite  pam_cracklib.so</span><span class="token comment" spellcheck="true">#将其修改为:</span>password requisite  pam_cracklib.so try_first_pass retry<span class="token operator">=</span>3 dcredit<span class="token operator">=</span>-1 lcredit<span class="token operator">=</span>-1 ucredit<span class="token operator">=</span>-1 ocredit<span class="token operator">=</span>-1 minlen<span class="token operator">=</span>8</code></pre><p>备注：至少包含一个数字、一个小写字母、一个大写字母、一个特殊字符、且密码长度&gt;=8</p><h3 id="版本信息"><a href="#版本信息" class="headerlink" title="版本信息"></a>版本信息</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">cat</span> /proc/version</code></pre><h3 id="限制xx用户登录"><a href="#限制xx用户登录" class="headerlink" title="限制xx用户登录"></a>限制xx用户登录</h3><pre class=" language-bash"><code class="language-bash">vim /etc/hosts.deny<span class="token comment" spellcheck="true">#添加内容：</span>sshd <span class="token keyword">:</span> 192.168.1.1<span class="token comment" spellcheck="true">#禁止192.168.1.1对服务器进行ssh的登陆</span></code></pre><h3 id="检查是否有其他uid-0的用户"><a href="#检查是否有其他uid-0的用户" class="headerlink" title="检查是否有其他uid=0的用户"></a>检查是否有其他uid=0的用户</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">awk</span> -F “：” <span class="token string">'(<span class="token variable">$3</span>==0)  {print  <span class="token variable">$1</span>} '</span> /etc/passwd</code></pre><h3 id="登陆超时限制"><a href="#登陆超时限制" class="headerlink" title="登陆超时限制"></a>登陆超时限制</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">cp</span> -p /etc/profile /etc/profile_bak <span class="token comment" spellcheck="true">#（备份）</span>gedit /etc/profile<span class="token comment" spellcheck="true">#增加</span>TMOUT<span class="token operator">=</span>300<span class="token function">export</span> TMOUT<span class="token comment" spellcheck="true">#或者</span><span class="token keyword">echo</span> <span class="token string">'export TMOUT=300'</span><span class="token operator">>></span>/etc/profile<span class="token keyword">echo</span> <span class="token string">'readonly TMOUT'</span> <span class="token operator">>></span>/etc/profile<span class="token function">source</span> /etc/profile</code></pre><h3 id="检查是否使用PAM认证模块禁止wheel组之外的用户su为root"><a href="#检查是否使用PAM认证模块禁止wheel组之外的用户su为root" class="headerlink" title="检查是否使用PAM认证模块禁止wheel组之外的用户su为root"></a>检查是否使用PAM认证模块禁止wheel组之外的用户su为root</h3><pre class=" language-bash"><code class="language-bash">gedit /etc/pam.d/su<span class="token comment" spellcheck="true">#新增</span>auth          sufficient     pam_rootok.soauth          required     pam_wheel.so use_uid</code></pre><p>备注：auth与sufficient之间由两个tab建隔开，sufficient与动态库路径之间使用一个tab建隔开</p><h3 id="禁用无用账户"><a href="#禁用无用账户" class="headerlink" title="禁用无用账户"></a>禁用无用账户</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">cat</span> /etc/passwd <span class="token comment" spellcheck="true">#查看口令文件，确认不必要的账号。</span><span class="token function">passwd</span> -l user <span class="token comment" spellcheck="true"># 锁定不必要的账号</span></code></pre><h3 id="账户锁定"><a href="#账户锁定" class="headerlink" title="账户锁定"></a>账户锁定</h3><pre class=" language-bash"><code class="language-bash">gedit /etc/pam.d/system-auth<span class="token comment" spellcheck="true">#在文件中修改或者添加</span>auth required pam_tally.so onerr<span class="token operator">=</span>fail deny<span class="token operator">=</span>3 unlock_time<span class="token operator">=</span>7200<span class="token comment" spellcheck="true">#锁定账户举例：</span><span class="token function">passwd</span> -l bin<span class="token function">passwd</span> -l sys<span class="token function">passwd</span> -l adm</code></pre><h3 id="检查系统弱口令"><a href="#检查系统弱口令" class="headerlink" title="检查系统弱口令"></a>检查系统弱口令</h3><pre class=" language-bash"><code class="language-bash">john /etc/shadow --singlejohn /etc/shadow --wordlist<span class="token operator">=</span>pass.dic</code></pre><p>我这边有报错 就不展示了<br>使用passwd 用户 命令为用户设置复杂的密码</p><h2 id="0x03-软件协议安全"><a href="#0x03-软件协议安全" class="headerlink" title="0x03 软件协议安全"></a>0x03 软件协议安全</h2><h3 id="openssh升级（按需做）"><a href="#openssh升级（按需做）" class="headerlink" title="openssh升级（按需做）"></a>openssh升级（按需做）</h3><pre class=" language-bash"><code class="language-bash">yum update  openssh</code></pre><h3 id="定时任务（防止病毒感染）"><a href="#定时任务（防止病毒感染）" class="headerlink" title="定时任务（防止病毒感染）"></a>定时任务（防止病毒感染）</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#定时任务检查：</span><span class="token function">crontab</span> -l<span class="token comment" spellcheck="true">#一次性任务检查：</span>at -l</code></pre><h3 id="限制ssh登录（看是否需要）"><a href="#限制ssh登录（看是否需要）" class="headerlink" title="限制ssh登录（看是否需要）"></a>限制ssh登录（看是否需要）</h3><pre class=" language-bash"><code class="language-bash">vim /etc/ssh/sshd_config<span class="token comment" spellcheck="true">#查看PermitRootLogin是否为no</span>PermitRootLogin no <span class="token comment" spellcheck="true">#不允许root登陆</span>Protocol 2 <span class="token comment" spellcheck="true">#修改ssh使用的协议版本</span>MaxAuthTries 3 <span class="token comment" spellcheck="true">#修改允许密码错误次数</span><span class="token keyword">echo</span> <span class="token string">"tty1"</span> <span class="token operator">></span> /etc/securettyhmod 700 /root</code></pre><h3 id="限制su为root用户"><a href="#限制su为root用户" class="headerlink" title="限制su为root用户"></a>限制su为root用户</h3><pre class=" language-bash"><code class="language-bash">gedit /etc/pam.d/su<span class="token comment" spellcheck="true">#在头部添加</span>auth required /lib/security/pam_wheel.so group<span class="token operator">=</span>wheel</code></pre><h3 id="禁止root用户登录ftp"><a href="#禁止root用户登录ftp" class="headerlink" title="禁止root用户登录ftp"></a>禁止root用户登录ftp</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#因为我的kali下没有这个文件，因此借鉴一下网上的</span><span class="token function">cat</span> /etc/pam.d/vsftpdAuth required pam_listfile.so item<span class="token operator">=</span>user sense<span class="token operator">=</span>deny file<span class="token operator">=</span>/etc/vsftpd/ftpusers onerr<span class="token operator">=</span>succeed<span class="token comment" spellcheck="true">#其中file=/etc/vsftpd/ftpusers即为当前系统上的ftpusers文件.</span><span class="token keyword">echo</span>  “root”   <span class="token operator">>></span>   /etc/vsftpd/ftpusers</code></pre><h3 id="防止flood攻击"><a href="#防止flood攻击" class="headerlink" title="防止flood攻击"></a>防止flood攻击</h3><pre class=" language-bash"><code class="language-bash">gedit  /etc/sysctl.conf<span class="token comment" spellcheck="true">#增加</span>net.ipv4.tcp_syncookies <span class="token operator">=</span> 1sysctl  -p</code></pre><h3 id="禁ping"><a href="#禁ping" class="headerlink" title="禁ping"></a>禁ping</h3><pre class=" language-bash"><code class="language-bash"><span class="token keyword">echo</span> 0 <span class="token operator">></span> /proc/sys/net/ipv4/icmp_echo_igore_all</code></pre><h3 id="检查异常进程"><a href="#检查异常进程" class="headerlink" title="检查异常进程"></a>检查异常进程</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">ps</span> aux<span class="token operator">|</span><span class="token function">sort</span> -rn -k +3<span class="token operator">|</span><span class="token function">head</span><span class="token comment" spellcheck="true">#检查cpu占用前10</span><span class="token function">ps</span> aux<span class="token operator">|</span><span class="token function">sort</span> -rn -k +4<span class="token operator">|</span><span class="token function">head</span><span class="token comment" spellcheck="true">#检查内存占用前10</span></code></pre><h3 id="关闭无效的服务及端口"><a href="#关闭无效的服务及端口" class="headerlink" title="关闭无效的服务及端口"></a>关闭无效的服务及端口</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#比如邮箱</span><span class="token function">service</span> postfix status<span class="token function">chkconfig</span> --del postfix<span class="token function">chkconfig</span> postfix off<span class="token comment" spellcheck="true">#比如cpus</span><span class="token function">service</span> cups status<span class="token function">chkconfig</span> --del cups<span class="token function">chkconfig</span> cups off</code></pre><h3 id="设置防火墙策略"><a href="#设置防火墙策略" class="headerlink" title="设置防火墙策略"></a>设置防火墙策略</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#或者用防火墙策略：</span><span class="token function">service</span> iptables status<span class="token keyword">echo</span> <span class="token string">'请根据用户实际业务端口占用等情况进行设置！'</span></code></pre><p>例如：</p><pre class=" language-bash"><code class="language-bash">gedit /etc/sysconfig/iptables <span class="token comment" spellcheck="true">#添加如下策略</span>-A INPUT -m state --state NEW -m tcp -p tcp --dport 8080 -j ACCEPT-A INPUT -m state --state NEW -m udp -p udp --dport 8080 -j ACCEPT</code></pre><p>以下举例：</p><pre class=" language-bash"><code class="language-bash">iptables -I INPUT -s 22.48.11.11 -j DROP<span class="token comment" spellcheck="true"># 22.48.11.11的包全部屏蔽</span>iptables -I INPUT -s 22.48.11.0/24 -j DROP<span class="token comment" spellcheck="true">#22.48.11.1到22.48.11.255的访问全部屏蔽</span>iptables -I INPUT -s 192.168.1.1 -p tcp --dport 80 -j DROP<span class="token comment" spellcheck="true"># 192.168.1.1的80端口的访问全部屏蔽</span>iptables -I INPUT -s 192.168.1.0/24 -p tcp --dport 80 -j DROP<span class="token comment" spellcheck="true">#192.168.1.1到192.168.1.255的80端口的访问全部屏蔽</span><span class="token function">service</span> iptabels restart<span class="token comment" spellcheck="true">#重启防火墙</span></code></pre><h3 id="设置历史记录数量"><a href="#设置历史记录数量" class="headerlink" title="设置历史记录数量"></a>设置历史记录数量</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">cp</span> /etc/profile /etc/profile_xu_bak <span class="token comment" spellcheck="true">#（备份）</span><span class="token function">sed</span> -i s/<span class="token string">'HISTSIZE=1000'</span>/<span class="token string">'HISTSIZE=5000'</span>/g /etc/profile  <span class="token comment" spellcheck="true">#（修改）</span><span class="token function">cat</span> /etc/profile <span class="token operator">|</span><span class="token function">grep</span> HISTSIZE<span class="token operator">|</span><span class="token function">grep</span> -v <span class="token function">export</span>   <span class="token comment" spellcheck="true">#（检查）</span></code></pre><h3 id="配置用户最小权限"><a href="#配置用户最小权限" class="headerlink" title="配置用户最小权限"></a>配置用户最小权限</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">chmod</span> 644 /etc/passwd<span class="token function">chmod</span> 400 /etc/shadow<span class="token function">chmod</span> 644 /etc/group</code></pre><h3 id="文件与目录缺省权限控制"><a href="#文件与目录缺省权限控制" class="headerlink" title="文件与目录缺省权限控制"></a>文件与目录缺省权限控制</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">cp</span> /etc/profile /etc/profile.bak  <span class="token comment" spellcheck="true">#（备份）</span>gedit  /etc/profile<span class="token comment" spellcheck="true">#增加</span><span class="token function">umask</span> 027<span class="token function">source</span>  /etc/profile</code></pre><h2 id="0x04-日志审计"><a href="#0x04-日志审计" class="headerlink" title="0x04 日志审计"></a>0x04 日志审计</h2><h3 id="启用远程日志功能"><a href="#启用远程日志功能" class="headerlink" title="启用远程日志功能"></a>启用远程日志功能</h3><p>···bash<br>gedit /etc/rsyslog.conf<br><em>.</em>         @Syslog日志服务器IP</p><pre><code>注意：*和@之间存在的是tab键，非空格。### 检查是否记录安全事件日志```bashgedit  /etc/syslog.conf 或者 /etc/rsyslog.conf#在文件中加入如下内容:*.err;kern.debug;daemon.notice     /var/log/messageschmod 640 /var/log/messagesservice rsyslog restart</code></pre><h3 id="日志保留半年以上"><a href="#日志保留半年以上" class="headerlink" title="日志保留半年以上"></a>日志保留半年以上</h3><pre class=" language-bash"><code class="language-bash">cp/etc/logrotate.conf /etc/logrotate.conf_xu_bak   <span class="token comment" spellcheck="true">#（备份）</span><span class="token function">sed</span> -i s/<span class="token string">'rotate 4'</span>/<span class="token string">'rotate 12'</span>/g /etc/logrotate.conf   <span class="token comment" spellcheck="true">#（修改）</span><span class="token function">service</span> syslog restart    <span class="token comment" spellcheck="true">#（重启）</span><span class="token function">cat</span> /etc/logrotate.conf <span class="token operator">|</span><span class="token function">grep</span> -v <span class="token string">'#'</span> <span class="token operator">|</span><span class="token function">grep</span> rotate    #（检查）</code></pre>]]></content>
+      
+      
+      <categories>
+          
+          <category> 信息安全 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Linux </tag>
+            
+            <tag> PAM认证 </tag>
+            
+            <tag> 主机加固 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>基于Docker部署jumpserver环境</title>
+      <link href="/posts/12a1.html"/>
+      <url>/posts/12a1.html</url>
+      
+        <content type="html"><![CDATA[<p>在 Docker中部署jumpserver环境也可以分为几次情况</p><ul><li>环境都在一个docker镜像中，这种环境不建议</li><li>环境分为三个docker镜像，jumpserver、mysql、redis各一个镜像</li></ul><p>本次我们部署环境为第二种情况</p><h2 id="0x01-安装-Docker"><a href="#0x01-安装-Docker" class="headerlink" title="0x01 安装 Docker"></a>0x01 安装 Docker</h2><h3 id="配置国内映像源"><a href="#配置国内映像源" class="headerlink" title="配置国内映像源"></a>配置国内映像源</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">mkdir</span> /etc/docker<span class="token keyword">echo</span> <span class="token string">"{    \"registry-mirrors\" : [    \"https://registry.docker-cn.com\",    \"https://docker.mirrors.ustc.edu.cn\",    \"http://hub-mirror.c.163.com\",    \"https://cr.console.aliyun.com/\"  ]}"</span><span class="token operator">>></span>/etc/docker/daemon.json</code></pre><h3 id="安装配置docker"><a href="#安装配置docker" class="headerlink" title="安装配置docker"></a>安装配置docker</h3><pre class=" language-bash"><code class="language-bash">yum -y <span class="token function">install</span> yum-utilsyum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repoyum makecache fastyum -y <span class="token function">install</span> docker-cesystemctl start docker <span class="token operator">&amp;&amp;</span> systemctl <span class="token function">enable</span> docker</code></pre><h3 id="生成秘钥"><a href="#生成秘钥" class="headerlink" title="生成秘钥"></a>生成秘钥</h3><pre class=" language-bash"><code class="language-bash"><span class="token keyword">if</span> <span class="token punctuation">[</span> <span class="token string">"<span class="token variable">$SECRET_KEY</span>"</span> <span class="token operator">=</span> <span class="token string">""</span> <span class="token punctuation">]</span><span class="token punctuation">;</span> <span class="token keyword">then</span> SECRET_KEY<span class="token operator">=</span><span class="token variable"><span class="token variable">`</span><span class="token function">cat</span> /dev/urandom <span class="token operator">|</span> <span class="token function">tr</span> -dc A-Za-z0-9 <span class="token operator">|</span> <span class="token function">head</span> -c 50<span class="token variable">`</span></span><span class="token punctuation">;</span> <span class="token keyword">echo</span> <span class="token string">"SECRET_KEY=<span class="token variable">$SECRET_KEY</span>"</span> <span class="token operator">>></span> ~/.bashrc<span class="token punctuation">;</span> <span class="token keyword">echo</span> <span class="token variable">$SECRET_KEY</span><span class="token punctuation">;</span> <span class="token keyword">else</span> <span class="token keyword">echo</span> <span class="token variable">$SECRET_KEY</span><span class="token punctuation">;</span> <span class="token keyword">fi</span><span class="token keyword">if</span> <span class="token punctuation">[</span> <span class="token string">"<span class="token variable">$BOOTSTRAP_TOKEN</span>"</span> <span class="token operator">=</span> <span class="token string">""</span> <span class="token punctuation">]</span><span class="token punctuation">;</span> <span class="token keyword">then</span> BOOTSTRAP_TOKEN<span class="token operator">=</span><span class="token variable"><span class="token variable">`</span><span class="token function">cat</span> /dev/urandom <span class="token operator">|</span> <span class="token function">tr</span> -dc A-Za-z0-9 <span class="token operator">|</span> <span class="token function">head</span> -c 16<span class="token variable">`</span></span><span class="token punctuation">;</span> <span class="token keyword">echo</span> <span class="token string">"BOOTSTRAP_TOKEN=<span class="token variable">$BOOTSTRAP_TOKEN</span>"</span> <span class="token operator">>></span> ~/.bashrc<span class="token punctuation">;</span> <span class="token keyword">echo</span> <span class="token variable">$BOOTSTRAP_TOKEN</span><span class="token punctuation">;</span> <span class="token keyword">else</span> <span class="token keyword">echo</span> <span class="token variable">$BOOTSTRAP_TOKEN</span><span class="token punctuation">;</span> <span class="token keyword">fi</span></code></pre><p>注：生成完 SECRET_KEY 和 BOOTSTRAP_TOKEN 变量后一定要确认一下，如果出现异常将会影响到后面的过程</p><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#查看秘钥是否生成</span><span class="token keyword">echo</span> <span class="token variable">$SECRET_KEY</span><span class="token keyword">echo</span> <span class="token variable">$BOOTSTRAP_TOKEN</span></code></pre><p>创建jms容器中的日志及数据挂到宿机的目录</p><pre class=" language-bash"><code class="language-bash"><span class="token function">mkdir</span> -p /home/jumpserver/data<span class="token function">mkdir</span> -p /home/koko/data<span class="token function">mkdir</span> -p /home/nginx/logs<span class="token function">mkdir</span> -p /home/mysql/<span class="token punctuation">{</span>data,logs,conf<span class="token punctuation">}</span></code></pre><h2 id="0x02-映像拉取"><a href="#0x02-映像拉取" class="headerlink" title="0x02 映像拉取"></a>0x02 映像拉取</h2><h3 id="mysql-映像拉取"><a href="#mysql-映像拉取" class="headerlink" title="mysql 映像拉取"></a>mysql 映像拉取</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#docker pull mysql</span>docker run --restart<span class="token operator">=</span>always \--name mysql5.7 -id \-e MYSQL_DATABASE<span class="token operator">=</span><span class="token string">"jumpserver"</span> \-e MYSQL_USER<span class="token operator">=</span><span class="token string">"jumpserver"</span> \-e MYSQL_PASSWORD<span class="token operator">=</span><span class="token string">"Ya0ling"</span> \-e MYSQL_ROOT_PASSWORD<span class="token operator">=</span><span class="token string">"Ya0ling"</span> \-v /home/mysql/data:/var/lib/mysql \-v /home/mysql/logs:/var/log/mysql/ \-v /home/mysql/conf:/etc/mysql/ \-p 3306:3306 -d mysql:5.7.20</code></pre><h3 id="redis-映像拉取"><a href="#redis-映像拉取" class="headerlink" title="redis 映像拉取"></a>redis 映像拉取</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#docker pull redis</span><span class="token keyword">echo</span> never <span class="token operator">></span> /sys/kernel/mm/transparent_hugepage/enabled<span class="token keyword">echo</span> <span class="token string">"vm.overcommit_memory=1"</span><span class="token operator">>></span>/etc/sysctl.conf<span class="token keyword">echo</span> <span class="token string">"net.core.somaxconn= 1024"</span><span class="token operator">>></span>/etc/sysctl.conf<span class="token keyword">echo</span> <span class="token string">"'echo never > /sys/kernel/mm/transparent_hugepage/enabled'"</span><span class="token operator">>></span>/etc/rc.localsysctl -p<span class="token comment" spellcheck="true"># 拉取映像</span>docker run -p 6379:6379 --name redis -v /home/redis/data:/data -d redis redis-server --requirepass <span class="token string">"Ya0ling"</span> --appendonly <span class="token function">yes</span></code></pre><p>redis容器中登录方式</p><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#查看映像运行情况</span>docker <span class="token function">ps</span> -a<span class="token comment" spellcheck="true"># 登录 redis 映像</span>docker <span class="token function">exec</span> -it redis /bin/bash<span class="token comment" spellcheck="true"># 映像中登录 redis 查看key</span>redis-cli -h localhost -p 6379<span class="token comment" spellcheck="true"># 输入 redis 密码</span>auth Ya0ling<span class="token comment" spellcheck="true"># 查看 key</span>auth key *<span class="token comment" spellcheck="true">#退出</span><span class="token keyword">exit</span></code></pre><blockquote><p>#注意映射关系修改配置为支持utf8mb4,或使用客户端登录修改jumpserver数据库编码</p></blockquote><pre class=" language-bash"><code class="language-bash">$ vim /data/mysql/conf/mysql.cnf<span class="token punctuation">[</span>mysql<span class="token punctuation">]</span>default-character-set<span class="token operator">=</span>utf8mb4root@ubuntu:~<span class="token comment" spellcheck="true"># vim /data/mysql/conf/mysqld.cnf</span><span class="token punctuation">[</span>mysqld<span class="token punctuation">]</span>pid-file        <span class="token operator">=</span> /var/run/mysqld/mysqld.pidsocket          <span class="token operator">=</span> /var/run/mysqld/mysqld.sockdatadir         <span class="token operator">=</span> /var/lib/mysql<span class="token comment" spellcheck="true">#log-error      = /var/log/mysql/error.log</span><span class="token comment" spellcheck="true"># Disabling symbolic-links is recommended to prevent assorted security risks</span>symbolic-links<span class="token operator">=</span>0character-set-server<span class="token operator">=</span>utf8mb4</code></pre><p>创建数据库并设置为utf8mb4编码</p><pre class=" language-bash"><code class="language-bash">create database jumpserver default charset <span class="token string">'utf8mb4'</span> collate <span class="token string">'utf8mb4_general_ci'</span><span class="token punctuation">;</span>grant all on jumpserver.* to <span class="token string">'jumpserver'</span>@<span class="token string">'%'</span> identified by <span class="token string">'weakPassword'</span><span class="token punctuation">;</span></code></pre><p>修改数据库的字符集</p><pre class=" language-bash"><code class="language-bash">mysql<span class="token operator">></span>use jumpservermysql<span class="token operator">></span>alter database jumpserver character <span class="token keyword">set</span> utf8mb4<span class="token punctuation">;</span><span class="token comment" spellcheck="true"># 查看数据库编码</span>show variables like <span class="token string">'%char%'</span><span class="token punctuation">;</span><span class="token comment" spellcheck="true"># 暂时设置编码</span><span class="token keyword">set</span> character_set_client<span class="token operator">=</span>utf8mb4<span class="token punctuation">;</span></code></pre><p>修改my.conf设置编码</p><pre class=" language-bash"><code class="language-bash"><span class="token punctuation">[</span>client<span class="token punctuation">]</span>default-character-set<span class="token operator">=</span>utf8mb4<span class="token punctuation">[</span>mysqld<span class="token punctuation">]</span>character-set-server<span class="token operator">=</span>utf8mb4collation-server<span class="token operator">=</span>utf8mb4_general_ci</code></pre><h3 id="拉取-jumpserver-映像"><a href="#拉取-jumpserver-映像" class="headerlink" title="拉取 jumpserver 映像"></a>拉取 jumpserver 映像</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true">#docker pull jms</span>docker run --restart<span class="token operator">=</span>always \--name jms_all -d \-p 80:80 -p 2222:2222 \-e SECRET_KEY<span class="token operator">=</span><span class="token variable">$SECRET_KEY</span> \-e BOOTSTRAP_TOKEN<span class="token operator">=</span><span class="token variable">$BOOTSTRAP_TOKEN</span> \-v /home/jumpserver/data:/opt/jumpserver/data \-v /home/jumpserver/logs:/opt/jumpserver/logs \-v /home/koko/data:/jumpserver/koko/data \-v /home/nginx/logs:/var/log/nginx/ \-e DB_HOST<span class="token operator">=</span><span class="token string">"mysql5.7"</span> \-e DB_PORT<span class="token operator">=</span>3306 \-e DB_USER<span class="token operator">=</span>root \-e DB_PASSWORD<span class="token operator">=</span>Ya0ling \-e DB_NAME<span class="token operator">=</span>jumpserver \--link mysql5.7:mysql \-e REDIS_HOST<span class="token operator">=</span>redis \-e REDIS_PORT<span class="token operator">=</span>6379 \-e REDIS_PASSWORD<span class="token operator">=</span>Ya0ling \--link redis:redis \jumpserver/jms_all:latest</code></pre><p>测试（其他机器连接，连接用户是admin，密码是admin）</p><p>docker容器设置开机自启动：</p><ul><li>–restart具体参数值详细信息</li><li>no - 容器退出时，不重启容器</li><li>on-failure - 只有在非0状态退出时才从新启动容器</li><li>always - 无论退出状态是如何，都重启容器<br>使用 on-failure 策略时指定 Docker 将尝试重新启动容器的最大次数；默认情况下Docker将尝试永远重新启动容器；</li><li>docker run –restart=on-failure:10 redis<br>如果创建容器时未指定 –restart=always ,可通过 update 命令更改；    </li><li>docker update –restart=always 容器ID</li></ul><blockquote><p>如未使用–restart=always选项，在服务器或其他情况导致服务器关机/重启，再次启动容器时需先起MySQL、redis，最后起jms</p></blockquote>]]></content>
+      
+      
+      <categories>
+          
+          <category> 环境部署 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Linux </tag>
+            
+            <tag> Docker </tag>
+            
+            <tag> jumpserver </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>如何重置jumpserver管理员密码</title>
+      <link href="/posts/96f0.html"/>
+      <url>/posts/96f0.html</url>
+      
+        <content type="html"><![CDATA[<h2 id="0x01-重置管理员密码"><a href="#0x01-重置管理员密码" class="headerlink" title="0x01 重置管理员密码"></a>0x01 重置管理员密码</h2><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 管理密码忘记了或者重置管理员密码</span>$ <span class="token function">source</span> /opt/py3/bin/activate$ <span class="token function">cd</span> /opt/jumpserver/apps$ python manage.py changepassword  admin<span class="token comment" spellcheck="true">#输入新的密码</span>$ password</code></pre><h2 id="0x02-新建超级管理账号（死而复生）"><a href="#0x02-新建超级管理账号（死而复生）" class="headerlink" title="0x02 新建超级管理账号（死而复生）"></a>0x02 新建超级管理账号（死而复生）</h2><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 新建超级用户的命令如下命令</span>$ python manage.py createsuperuser --username<span class="token operator">=</span>user --email<span class="token operator">=</span>user@domain.com<span class="token comment" spellcheck="true"># 设备新用户密码</span>$ password:</code></pre>]]></content>
+      
+      
+      <categories>
+          
+          <category> 环境部署 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Linux </tag>
+            
+            <tag> jumpserver </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>基于Docker部署GitLab环境搭建</title>
+      <link href="/posts/3184.html"/>
+      <url>/posts/3184.html</url>
+      
+        <content type="html"><![CDATA[<p>最近在学习自动化部署的一些内容，涉及到的内容有Docker、Jenkins、Gitlab等内容，今天通过docker玩了一遍gitlab，下面是一些心得。</p><h2 id="0x01-前提条件"><a href="#0x01-前提条件" class="headerlink" title="0x01 前提条件"></a>0x01 前提条件</h2><ul><li>（1）存在docker</li><li>（2）服务器可以联网（外网）</li><li>（3）服务器内存至少4G（内存不够会出现502错误）</li></ul><h2 id="0x02-安装"><a href="#0x02-安装" class="headerlink" title="0x02 安装"></a>0x02 安装</h2><p>本次安装在CentOS7下进行，下面的命令建议复制到记事本后再从记事本复制</p><h3 id="卸载旧版docker"><a href="#卸载旧版docker" class="headerlink" title="卸载旧版docker"></a>卸载旧版docker</h3><pre class=" language-bash"><code class="language-bash">yum remove docker \                  docker-client \                  docker-client-latest \                  docker-common \                  docker-latest \                  docker-latest-logrotate \                  docker-logrotate \                  docker-engine</code></pre><h3 id="配置-docker-拉取源"><a href="#配置-docker-拉取源" class="headerlink" title="配置 docker 拉取源"></a>配置 docker 拉取源</h3><p>如不配置源因网络原因可能会拉取失败，配置国内拉取源提升稳定性。</p><pre class=" language-bash"><code class="language-bash"><span class="token function">mkdir</span> /etc/docker<span class="token keyword">echo</span> <span class="token string">"{    \"registry-mirrors\" : [    \"https://registry.docker-cn.com\",    \"https://docker.mirrors.ustc.edu.cn\",    \"http://hub-mirror.c.163.com\",    \"https://cr.console.aliyun.com/\"  ]}"</span><span class="token operator">>></span>/etc/docker/daemon.json</code></pre><h3 id="安装docker并配置docker源"><a href="#安装docker并配置docker源" class="headerlink" title="安装docker并配置docker源"></a>安装docker并配置docker源</h3><pre class=" language-bash"><code class="language-bash">yum -y <span class="token function">install</span> yum-utilsyum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repoyum-config-manager --enable docker-ce-nightlyyum-config-manager --enable docker-ce-testyum makecache fastyum -y <span class="token function">install</span> docker-ce docker-ce-cli containerd.iosystemctl start docker <span class="token operator">&amp;&amp;</span> systemctl <span class="token function">enable</span> docker</code></pre><h3 id="gitlab镜像拉取"><a href="#gitlab镜像拉取" class="headerlink" title="gitlab镜像拉取"></a>gitlab镜像拉取</h3><blockquote><p>gitlab-ce为稳定版本，后面不填写版本则默认pull最新latest版本</p></blockquote><pre class=" language-bash"><code class="language-bash">$ docker pull gitlab/gitlab-ce:latest$ <span class="token function">mkdir</span> -p /home/gitlab/<span class="token punctuation">{</span>config,logs,data<span class="token punctuation">}</span></code></pre><h2 id="0x03-配置环境"><a href="#0x03-配置环境" class="headerlink" title="0x03 配置环境"></a>0x03 配置环境</h2><h3 id="运行gitlab镜像"><a href="#运行gitlab镜像" class="headerlink" title="运行gitlab镜像"></a>运行gitlab镜像</h3><p>拉取gitlab镜像并配置环境</p><pre class=" language-bash"><code class="language-bash">$ docker run -d \ -p 443:443 \ -p 80:80 \ -p 222:22 \ --name gitlab \ --restart always \ -v /home/gitlab/config:/etc/gitlab \ -v /home/gitlab/logs:/var/log/gitlab \ -v /home/gitlab/data:/var/opt/gitlab \ gitlab/gitlab-ce</code></pre><ul><li>-d：后台运行</li><li>-p：将容器内部端口向外映射</li><li>–name：命名容器名称</li><li>-v：将容器内数据文件夹或者日志、配置等文件夹挂载到宿主机指定目录</li></ul><h3 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h3><p>按上面的方式，gitlab容器运行没问题，但在gitlab上创建项目的时候，生成项目的URL访问地址是按容器的hostname来生成的，也就是容器的id。作为gitlab服务器，我们需要一个固定的URL访问地址，于是需要配置gitlab.rb（宿主机路径：<code>/home/gitlab/config/gitlab.rb</code>）。</p><p>gitlab.rb文件内容默认全是注释</p><pre class=" language-bash"><code class="language-bash">$ vim /home/gitlab/config/gitlab.rb<span class="token comment" spellcheck="true"># 配置http协议所使用的访问地址,不加端口号默认为80</span>external_url <span class="token string">'http://192.168.199.231'</span><span class="token comment" spellcheck="true"># 配置ssh协议所使用的访问地址和端口</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'gitlab_ssh_host'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">'192.168.199.231'</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'gitlab_shell_ssh_port'</span><span class="token punctuation">]</span> <span class="token operator">=</span> 222<span class="token comment" spellcheck="true"># 此端口是run时22端口映射的222端口</span>:wq <span class="token comment" spellcheck="true">#保存配置文件并退出</span></code></pre><p>修改邮箱</p><p>在gitlab.rb文件的最后添加如下代码</p><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 是否启用</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_enable'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token boolean">true</span><span class="token comment" spellcheck="true"># SMTP服务的地址</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_address'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"smtp.qq.com"</span><span class="token comment" spellcheck="true"># 端口</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_port'</span><span class="token punctuation">]</span> <span class="token operator">=</span> 465<span class="token comment" spellcheck="true"># 你的QQ邮箱（发送账号）</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_user_name'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"xxx@qq.com"</span><span class="token comment" spellcheck="true"># 授权码</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_password'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"********"</span><span class="token comment" spellcheck="true"># 域名</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_domain'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"smtp.qq.com"</span><span class="token comment" spellcheck="true"># 登录验证</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_authentication'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"login"</span><span class="token comment" spellcheck="true"># 使用了465端口，就需要配置下面三项</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_enable_starttls_auto'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token boolean">true</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_tls'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token boolean">true</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'smtp_openssl_verify_mode'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">'none'</span><span class="token comment" spellcheck="true"># 你的QQ邮箱（发送账号）</span>gitlab_rails<span class="token punctuation">[</span><span class="token string">'gitlab_email_from'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">'xxx@qq.com'</span></code></pre><p>应用配置</p><pre class=" language-bash"><code class="language-bash"><span class="token function">sudo</span> gitlab-ctl reconfigure</code></pre><p>修改port</p><p>修改gitlab.yml文件</p><pre class=" language-bash"><code class="language-bash">// 文件路径 /opt/gitlab/embedded/service/gitlab-rails/config<span class="token function">sudo</span> <span class="token function">cd</span> /opt/gitlab/embedded/service/gitlab-rails/configvim gitlab.yml// 修改port 为8090</code></pre><p>重启gitlab容器</p><pre class=" language-bash"><code class="language-bash">$ docker restart gitlab<span class="token comment" spellcheck="true"># 查看启动情况</span>$ docker <span class="token function">ps</span><span class="token comment" spellcheck="true"># 登录容器</span>$ docker <span class="token function">exec</span> -it gitlab <span class="token comment" spellcheck="true">#!/usr/bin/env bash</span></code></pre><p>验证邮箱服务</p><pre class=" language-bash"><code class="language-bash">// 在容器中进入命令行<span class="token function">sudo</span> gitlab-rails console// 测试邮件发送<span class="token function">sudo</span> Notify.test_email<span class="token punctuation">(</span><span class="token string">"xxx@163.com"</span>,<span class="token string">"title"</span>,<span class="token string">"gitlab"</span><span class="token punctuation">)</span>.deliver_now// 退出命令行<span class="token function">sudo</span> <span class="token keyword">exit</span>// 退出容器<span class="token function">sudo</span> <span class="token keyword">exit</span></code></pre><p>此时项目的仓库地址就变了。如果ssh端口地址不是默认的22，就会加上ssh:// 协议头</p><p>打开浏览器输入ip地址(因为我的gitlab端口为80，所以浏览器url不用输入端口号，如果端口号不是80，则打开为：ip:端口号)</p><p>第一次进入要输入新的root用户密码，设置好之后确定就行<br>下面我们就可以新建一个项目了，点击Create a project<br>创建项目。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 环境部署 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Linux </tag>
+            
+            <tag> Docker </tag>
+            
+            <tag> GitLab </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>安装配置Docker环境</title>
       <link href="/posts/5d00.html"/>
       <url>/posts/5d00.html</url>
@@ -47,9 +161,9 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> 数据库 </tag>
+            
+            <tag> CentOS </tag>
             
             <tag> MySQL </tag>
             
@@ -142,9 +256,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> Ubuntu </tag>
             
@@ -171,9 +285,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> NextCloud </tag>
             
@@ -200,9 +314,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> Ubuntu </tag>
             
@@ -229,9 +343,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> Ubuntu </tag>
             
@@ -258,9 +372,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
         </tags>
       
@@ -285,11 +399,11 @@
       
         <tags>
             
-            <tag> CentOS </tag>
-            
             <tag> MariaDB </tag>
             
             <tag> 数据库 </tag>
+            
+            <tag> CentOS </tag>
             
         </tags>
       
@@ -345,9 +459,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> CPU </tag>
             
@@ -405,9 +519,9 @@
       
         <tags>
             
-            <tag> Linux </tag>
-            
             <tag> CentOS </tag>
+            
+            <tag> Linux </tag>
             
             <tag> Windows Server </tag>
             
